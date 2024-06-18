@@ -1,0 +1,107 @@
+# Copyright 2024 Cisco Systems, Inc. and its affiliates
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+  generation: 1
+  labels:
+    app.kubernetes.io/instance: opal
+    app.kubernetes.io/name: opal-pgsql
+    app.kubernetes.io/version: 0.7.4
+    opal.ac/role: pgsql
+  name: opal-pgsql
+  namespace: opal-ns
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: opal
+      app.kubernetes.io/name: opal-pgsql
+      opal.ac/role: pgsql
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/instance: opal
+        app.kubernetes.io/name: opal-pgsql
+        app.kubernetes.io/version: 0.7.4
+        opal.ac/role: pgsql
+    spec:
+      containers:
+      - env:
+        - name: POSTGRES_DB
+          value: postgres
+        - name: POSTGRES_USER
+          value: postgres
+        - name: POSTGRES_PASSWORD
+          value: postgres
+        image: docker.io/postgres:alpine
+        imagePullPolicy: IfNotPresent
+        name: pgsql
+        ports:
+        - containerPort: 5432
+          name: pgsql
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: opal
+    app.kubernetes.io/name: opal-pgsql
+    app.kubernetes.io/version: 0.7.4
+    opal.ac/role: pgsql
+  name: opal-pgsql
+  namespace: opal-ns
+spec:
+  clusterIP: 10.103.194.227
+  clusterIPs:
+  - 10.103.194.227
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: pgsql
+    port: 5432
+    protocol: TCP
+    targetPort: pgsql
+  selector:
+    app.kubernetes.io/instance: opal
+    app.kubernetes.io/name: opal-pgsql
+    opal.ac/role: pgsql
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

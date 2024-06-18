@@ -1,0 +1,78 @@
+# Copyright 2024 Cisco Systems, Inc. and its affiliates
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: wasm-lineage-headers
+spec:
+  workloadSelector:
+    labels:
+      app: flaskapi
+  configPatches:
+  - applyTo: EXTENSION_CONFIG
+    patch:
+      operation: ADD
+      value:
+        name: wasm-lineage-headers
+        typed_config:
+          "@type": type.googleapis.com/udpa.type.v1.TypedStruct
+          type_url: type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+          value:
+            config:
+              vm_config:
+                vm_id: wasm-lineage-headers-vm
+                runtime: envoy.wasm.runtime.v8
+                code:
+                  remote:
+                    http_uri:
+                      uri: http://wasm-lineage-headers.storage.googleapis.com/main.wasm
+                    sha256: 4b563168d3cc4b306b7f9f771383d266013f3de5282f8b1e26ce0aa6165198d7
+  - applyTo: HTTP_FILTER
+    match:
+      context: SIDECAR_INBOUND
+      listener:
+        filterChain:
+          filter:
+            name: envoy.filters.network.http_connection_manager
+    patch:
+      operation: INSERT_BEFORE
+      value:
+        name: wasm-lineage-headers
+        config_discovery:
+          config_source:
+            ads: {}
+            initial_fetch_timeout: 0s # wait indefinitely to prevent bad Wasm fetch
+          type_urls: [ "type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm"]
+  - applyTo: CLUSTER
+    match:
+      context: SIDECAR_OUTBOUND
+    patch:
+      operation: ADD
+      value: # cluster specification
+        name: opa
+        type: STRICT_DNS
+        connect_timeout: 20s
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: opa
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: "127.0.0.1"
+                    port_value: 8181

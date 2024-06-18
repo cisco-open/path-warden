@@ -1,0 +1,66 @@
+#Editing Flow Commands
+rm main.wasm
+tinygo build -o main.wasm -scheduler=none -target=wasi main.go
+eval $(minikube docker-env)
+docker build -t brannankovachev/wasm-lineage-headers .
+docker push brannankovachev/wasm-lineage-headers
+kubectl delete -f wasm.yml && kubectl apply -f wasm.yml
+
+#INFO
+kubectl get wasmplugin
+kubect describe wasmplugin
+
+#istio proxy logs
+kubectl logs -l app=flaskapi -c istio-proxy
+kubectl logs $(kubectl get pod -l app=flaskapi -o name) -c istio-proxy
+
+#Get User from Identify Svc
+curl $(kubectl get svc identify-svc-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}')/users
+
+---
+#Complex Deployment
+kubectl create configmap lin-hdrs-filter --from-file=lin-hdrs-filter.wasm=main.wasm
+
+#Applying Filter
+kubectl apply -f envoyFilter.yaml
+
+#EDITING w/ EnvoyFilter
+#Redeploying Configmap -> Probably want to make this a file	
+rm main.wasm
+tinygo build -o main.wasm -scheduler=none -target=wasi main.go
+kubectl delete configmap lin-hdrs-filter
+kubectl create configmap lin-hdrs-filter --from-file=lin-hdrs-filter.wasm=main.wasm
+kubectl rollout restart deployment flaskapi-deployment
+
+kubectl apply -f envoyFilter2.yaml
+kubectl delete -f envoyFilter2.yaml
+---
+#GCLOUD Deployment
+kubectl delete -f envoyFilterRemote.yaml
+kubectl apply -f envoyFilterRemote.yaml
+
+BUCKET_NAME="wasm-lineage-headers"
+gsutil cp main.wasm gs://$BUCKET_NAME
+gsutil acl ch -u AllUsers:R gs://$BUCKET_NAME/main.wasm
+gsutil setmeta -h "Cache-Control:no-cache" gs://$BUCKET_NAME/main.wasm
+
+
+http://wasm-lineage-headers.storage.googleapis.com/main.wasm?id=1
+http://storage.cloud.google.com/wasm-lineage-headers/main.wasm
+sha256sum main.wasm
+
+---
+
+#FINAL Editing FLOW
+tinygo build -o main.wasm -scheduler=none -target=wasi main.go
+./update_yaml.sh
+BUCKET_NAME="wasm-lineage-headers"
+gsutil cp main.wasm gs://$BUCKET_NAME
+gsutil acl ch -u AllUsers:R gs://$BUCKET_NAME/main.wasm
+gsutil setmeta -h "Cache-Control:no-cache" gs://$BUCKET_NAME/main.wasm
+kubectl delete -f envoyFilterRemote.yaml
+kubectl apply -f envoyFilterRemote.yaml
+
+
+
+curl $(kubectl get svc identify-svc-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}')/users

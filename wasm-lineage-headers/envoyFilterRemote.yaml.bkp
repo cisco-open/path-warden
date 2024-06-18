@@ -1,0 +1,62 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: wasm-lineage-headers
+spec:
+  workloadSelector:
+    labels:
+      app: flaskapi
+  configPatches:
+  - applyTo: EXTENSION_CONFIG
+    patch:
+      operation: ADD
+      value:
+        name: wasm-lineage-headers
+        typed_config:
+          "@type": type.googleapis.com/udpa.type.v1.TypedStruct
+          type_url: type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+          value:
+            config:
+              vm_config:
+                vm_id: wasm-lineage-headers-vm
+                runtime: envoy.wasm.runtime.v8
+                code:
+                  remote:
+                    http_uri:
+                      uri: http://wasm-lineage-headers.storage.googleapis.com/main.wasm
+                    sha256: 8adf45ecb5e1555b486b2ebe9de456d86b5a6a480a172864ceb49e0bc1b0a21d
+  - applyTo: HTTP_FILTER
+    match:
+      context: SIDECAR_INBOUND
+      listener:
+        filterChain:
+          filter:
+            name: envoy.filters.network.http_connection_manager
+    patch:
+      operation: INSERT_BEFORE
+      value:
+        name: wasm-lineage-headers
+        config_discovery:
+          config_source:
+            ads: {}
+            initial_fetch_timeout: 0s # wait indefinitely to prevent bad Wasm fetch
+          type_urls: [ "type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm"]
+  - applyTo: CLUSTER
+    match:
+      context: SIDECAR_OUTBOUND
+    patch:
+      operation: ADD
+      value: # cluster specification
+        name: opa
+        type: STRICT_DNS
+        connect_timeout: 20s
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: opa
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: "127.0.0.1"
+                    port_value: 8181

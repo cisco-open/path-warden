@@ -1,0 +1,157 @@
+# Copyright 2024 Cisco Systems, Inc. and its affiliates
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opentelemetry-collector-conf
+  namespace: istio-system
+  labels:
+    app: opentelemetry-collector
+data:
+  opentelemetry-collector-config: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+          http:
+    processors:
+      batch:
+    exporters:
+      otlp:
+        endpoint: "otel-collector.default.svc.cluster.local:4317"
+        tls:
+          insecure: true
+      logging:
+        loglevel: debug
+    extensions:
+      health_check:
+    service:
+      extensions:
+      - health_check
+      pipelines:
+        logs:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [logging]
+        traces:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [logging, otlp]
+        metrics:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [logging]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opentelemetry-collector
+  namespace: istio-system
+  labels:
+    app: opentelemetry-collector
+spec:
+  ports:
+    - name: grpc-otlp # Default endpoint for OpenTelemetry receiver.
+      port: 4317
+      protocol: TCP
+      targetPort: 4317
+  selector:
+    app: opentelemetry-collector
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opentelemetry-collector
+  namespace: istio-system
+  labels:
+    app: opentelemetry-collector
+spec:
+  ports:
+    - name: grpc-otlp # Default endpoint for OpenTelemetry receiver.
+      port: 4317
+      protocol: TCP
+      targetPort: 4317
+  selector:
+    app: opentelemetry-collector
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opentelemetry-collector
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      app: opentelemetry-collector
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: opentelemetry-collector
+        sidecar.istio.io/inject: "false" # do not inject
+    spec:
+      containers:
+        - command:
+            - "/otelcol"
+            - "--config=/conf/opentelemetry-collector-config.yaml"
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+          image: otel/opentelemetry-collector:0.71.0
+          imagePullPolicy: IfNotPresent
+          name: opentelemetry-collector
+          ports:
+            - containerPort: 4317
+              protocol: TCP
+            - containerPort: 14250 # Default endpoint for Jaeger gRPC receiver.
+            - containerPort: 14268 # Default endpoint for Jaeger HTTP receiver.
+          resources:
+            limits:
+              cpu: "2"
+              memory: 4Gi
+            requests:
+              cpu: 200m
+              memory: 400Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - name: opentelemetry-collector-config-vol
+              mountPath: /conf
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - configMap:
+            defaultMode: 420
+            items:
+              - key: opentelemetry-collector-config
+                path: opentelemetry-collector-config.yaml
+            name: opentelemetry-collector-conf
+          name: opentelemetry-collector-config-vol

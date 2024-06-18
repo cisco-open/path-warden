@@ -1,0 +1,355 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://permitio.github.io/opal-helm-chart/",
+    "title": "OPAL Helm values",
+    "definitions": {
+      "DataSourceEntry": {
+        "type": "object",
+        "title": "DataSourceEntry",
+        "additionalProperties": true,
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "url source to query for data"
+          },
+          "topics": {
+            "type": "array",
+            "title": "topics the data applies to",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dst_path": {
+            "type": "string",
+            "title": "OPA data api path to store the document at"
+          },
+          "data": {
+            "type": "object",
+            "title": "Data payload to embed within the data update (instead of having the client fetch it from the url)."
+          },
+          "save_method": {
+            "type": "string",
+            "title": "Method used to write into OPA - PUT/PATCH"
+          }
+        }
+      },
+      "ServerDataSourceConfig": {
+        "type": "object",
+        "title": "ServerDataSourceConfig",
+        "additionalProperties": false,
+        "properties": {
+          "config": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "title": "DataSourceConfig",
+            "additionalProperties": false,
+            "properties": {
+              "entries": {
+                "type": "array",
+                "title": "list of data sources",
+                "default": [
+                  
+                ],
+                "items": {
+                  "$ref": "#/definitions/DataSourceEntry"
+                }
+              }
+            }
+          },
+          "external_source_url": {
+            "type": "string",
+            "title": "url to external data source"
+          }
+        }
+      }
+    },
+    "type": "object",
+    "required": [
+      "image"
+    ],
+    "properties": {
+      "image": {
+        "type": "object",
+        "title": "image",
+        "additionalProperties": false,
+        "required": [
+          "server",
+          "client",
+          "pgsql"
+        ],
+        "properties": {
+          "server": {
+            "type": "object",
+            "title": "server",
+            "additionalProperties": false,
+            "properties": {
+              "registry": {
+                "type": "string",
+                "default": "docker.io",
+                "title": "server docker image registry"
+              },
+              "repository": {
+                "type": "string",
+                "default": "permitio/opal-server",
+                "title": "server docker image repository"
+              },
+              "tag": {
+                "type": "string",
+                "title": "server docker image tag. defaults to chart appVersion"
+              },
+              "pullSecrets": {
+                "type": "array",
+                "default": [
+                  
+                ],
+                "title": "server docker image pull secrets"
+              }
+            }
+          },
+          "client": {
+            "type": "object",
+            "title": "client",
+            "additionalProperties": false,
+            "properties": {
+              "registry": {
+                "type": "string",
+                "default": "docker.io",
+                "title": "client docker image registry"
+              },
+              "repository": {
+                "type": "string",
+                "default": "permitio/opal-client",
+                "title": "client docker image repository"
+              },
+              "tag": {
+                "type": "string",
+                "title": "client docker image tag. defaults to chart appVersion"
+              },
+              "pullSecrets": {
+                "type": "array",
+                "default": [
+                  
+                ],
+                "title": "client docker image pull secrets"
+              }
+            }
+          },
+          "pgsql": {
+            "type": "object",
+            "title": "pgsql",
+            "additionalProperties": false,
+            "properties": {
+              "registry": {
+                "type": "string",
+                "default": "docker.io",
+                "title": "pgsql docker image registry"
+              },
+              "repository": {
+                "type": "string",
+                "default": "postgres",
+                "title": "pgsql docker image repository"
+              },
+              "tag": {
+                "type": "string",
+                "default": "alpine",
+                "title": "pgsql docker image tag"
+              },
+              "pullSecrets": {
+                "type": "array",
+                "default": [
+                  
+                ],
+                "title": "pgsql docker image pull secrets"
+              }
+            }
+          }
+        }
+      },
+      "server": {
+        "type": [
+          "null",
+          "object"
+        ],
+        "additionalProperties": false,
+        "title": "opal server settings",
+        "required": [
+          "port",
+          "policyRepoUrl",
+          "pollingInterval",
+          "dataConfigSources",
+          "broadcastPgsql",
+          "uvicornWorkers",
+          "replicas"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "enable server",
+            "default": true
+          },
+          "port": {
+            "type": "integer",
+            "title": "server listening port",
+            "default": 7002
+          },
+          "policyRepoUrl": {
+            "type": "string",
+            "title": "policy repo url",
+            "default": "https://github.com/permitio/opal-example-policy-repo"
+          },
+          "policyRepoSshKey": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "title": "policy SSH key",
+            "default": null
+          },
+          "policyRepoClonePath": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "title": "policy clone path",
+            "default": null
+          },
+          "policyRepoMainBranch": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "title": "policy main branch",
+            "default": null
+          },
+          "pollingInterval": {
+            "type": "integer",
+            "title": "polling interval (sec)",
+            "default": 30
+          },
+          "dataConfigSources": {
+            "$ref": "#/definitions/ServerDataSourceConfig"
+          },
+          "broadcastUri": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "title": "broadcast url",
+            "default": null
+          },
+          "broadcastPgsql": {
+            "type": "boolean",
+            "title": "install broadcast pgsql",
+            "default": true
+          },
+          "broadcastReplicas": {
+            "type": "integer",
+            "title": "replicas for broadcast pgsql",
+            "default": 1
+          },
+          "uvicornWorkers": {
+            "type": "integer",
+            "title": "num of uvicorn workers per pod",
+            "default": 4
+          },
+          "replicas": {
+            "type": "integer",
+            "title": "num of replicas",
+            "default": 1
+          },
+          "extraEnv": {
+            "type": "object",
+            "title": "extra environment variables list",
+            "default": null
+          },
+          "secrets": {
+            "type": "array",
+            "title": "name of a kubernetes secret from where to fetch secret environment variables.",
+            "default": null,
+            "items": {
+              "type": "string"
+            }
+          },
+          "resources": {
+            "type": "object",
+            "title": "resources",
+            "default": null
+          },
+          "imagePullPolicy": {
+            "type": "string",
+            "default": "IfNotPresent",
+            "title": "when kubelet should pull specified image"
+          }
+        }
+      },
+      "client": {
+        "type": [
+          "null",
+          "object"
+        ],
+        "additionalProperties": false,
+        "title": "opal client settings",
+        "required": [
+          "port",
+          "opaPort",
+          "replicas"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "enable client",
+            "default": true
+          },
+          "port": {
+            "type": "integer",
+            "title": "client rest port",
+            "default": 7000
+          },
+          "opaPort": {
+            "type": "integer",
+            "title": "client embedded opa port",
+            "default": 8181
+          },
+          "replicas": {
+            "type": "integer",
+            "title": "num of replicas",
+            "default": 1
+          },
+          "extraEnv": {
+            "type": "object",
+            "title": "extra environment variables list",
+            "default": null
+          },
+          "opaStartupData": {
+            "type": "object",
+            "title": "client startup data for embedded opa",
+            "default": null
+          },
+          "serverUrl": {
+            "type": "string",
+            "title": "opal server url for client to connect to"
+          },
+          "secrets": {
+            "type": "array",
+            "title": "name of a kubernetes secret from where to fetch secret environment variables.",
+            "default": null,
+            "items": {
+              "type": "string"
+            }
+          },
+          "resources": {
+            "type": "object",
+            "title": "resources",
+            "default": null
+          },
+          "imagePullPolicy": {
+            "type": "string",
+            "default": "IfNotPresent",
+            "title": "when kubelet should pull specified image"
+          }
+        }
+      }
+    }
+  }

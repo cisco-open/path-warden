@@ -1,0 +1,3 @@
+Host <git host url>
+    AddKeysToAgent yes
+    IdentityFile ~/.ssh/policyrepo.pk

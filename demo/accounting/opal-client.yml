@@ -1,0 +1,130 @@
+# Copyright 2024 Cisco Systems, Inc. and its affiliates
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+  generation: 1
+  labels:
+    app.kubernetes.io/instance: opal
+    app.kubernetes.io/name: opal-client-accounting
+    app.kubernetes.io/version: 0.7.4
+    opal.ac/role: client
+  name: opal-client-accounting
+  namespace: opal-ns
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: opal
+      app.kubernetes.io/name: opal-client-accounting
+      opal.ac/role: client
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/instance: opal
+        app.kubernetes.io/name: opal-client-accounting
+        app.kubernetes.io/version: 0.7.4
+        opal.ac/role: client
+    spec:
+      containers:
+        - env:
+            - name: UVICORN_NUM_WORKERS
+              value: "1"
+            - name: OPAL_SERVER_URL
+              value: http://opal-server:7002
+            - name: OPAL_LOG_LEVEL
+              value: DEBUG
+            - name: OPAL_OPA_HEALTH_CHECK_POLICY_ENABLED
+              value: "false"
+            - name: OPAL_POLICY_STORE_URL
+              value: "http://accounting.default.svc.cluster.local:81"
+          image: docker.io/permitio/opal-client:0.7.4
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /healthcheck
+              port: http
+              scheme: HTTP
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 10
+          name: opal-client
+          ports:
+            - containerPort: 7000
+              name: http
+              protocol: TCP
+            - containerPort: 8181
+              name: opa
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /healthcheck
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            successThreshold: 1
+            timeoutSeconds: 10
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: opal
+    app.kubernetes.io/name: opal-client-accounting
+    app.kubernetes.io/version: 0.7.4
+    opal.ac/role: client
+  name: opal-client-accounting
+  namespace: opal-ns
+spec:
+  ports:
+    - name: http
+      port: 7000
+      protocol: TCP
+      targetPort: http
+    - name: opa
+      port: 8181
+      protocol: TCP
+      targetPort: opa
+  selector:
+    app.kubernetes.io/instance: opal
+    app.kubernetes.io/name: opal-client-accounting
+    opal.ac/role: client
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

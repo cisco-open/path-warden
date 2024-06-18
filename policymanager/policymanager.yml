@@ -1,0 +1,64 @@
+# Copyright 2024 Cisco Systems, Inc. and its affiliates
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: policy-manager
+  labels:
+    app: policy-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: policy-manager
+  template:
+    metadata:
+      labels:
+        app: policy-manager
+        sidecar.istio.io/inject: "true"
+      annotations:
+        sidecar.istio.io/logLevel: "info"
+    spec:
+      containers:
+        - name: policy-manager
+          image: anmanea/policy-manager:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          env:
+            - name: GIT_USER_NAME
+              value: johndoe
+            - name: GIT_USER_EMAIL
+              value: johndoe@john.doe
+            - name: GIT_URL
+              value: # github.com, gitlab.com etc.
+            - name: REPOSITORY_PATH
+              value:  # user/repo
+            - name: REPOSITORY_DEST
+              value: /app/policies # local destination 
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: policy-manager
+spec:
+  ports:
+    - port: 80
+      targetPort: 5000
+  selector:
+    app: policy-manager
+  type: LoadBalancer

@@ -1,0 +1,75 @@
+# Copyright 2024 Cisco Systems, Inc. and its affiliates
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+image:
+  client:
+    registry: docker.io
+    repository: permitio/opal-client
+  server:
+    registry: docker.io
+    repository: permitio/opal-server
+  pgsql:
+    registry: docker.io
+    repository: postgres
+    tag: alpine
+
+server:
+  port: 7002
+  policyRepoUrl: "git@wwwin-github.cisco.com:chflemin/PathWardenPolicyRepo.git"
+  policyRepoSshKey: -----BEGIN OPENSSH PRIVATE KEY-----_b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW_QyNTUxOQAAACAhiczcNjLaat9nc8853T2tAFRNwGqA/nK8FZFifUhb+AAAAJirM3MvqzNz_LwAAAAtzc2gtZWQyNTUxOQAAACAhiczcNjLaat9nc8853T2tAFRNwGqA/nK8FZFifUhb+A_AAAECmVZMZ4EuK8G9dK0BtwBUmMBIzJw70wDKljGKzCGxfyiGJzNw2Mtpq32dzzzndPa0A_VE3AaoD+crwVkWJ9SFv4AAAAEmNoZmxlbWluQGNpc2NvLmNvbQECAw==_-----END OPENSSH PRIVATE KEY-----
+  policyRepoClonePath: null
+  policyRepoMainBranch: "master"
+  pollingInterval: 30
+  dataConfigSources:
+    # Option #1 - No data sources
+    config:
+      entries: []
+
+    # Option #2 - Dynamically get data sources
+    # external_source_url: "https://your-api.com/path/to/api/endpoint"
+
+    # Option #3 - Example static data sources (endpoint is empty by default)
+    # config:
+    #   entries:
+    #   - url: http://opal-server:7002/policy-data
+    #     topics: ["policy_data"]
+    #     dst_path: "/static"
+
+    # Option #4 - Leave config empty and instead supply using the OPAL_DATA_CONFIG_SOURCES environment variable through env or secret
+    # config: null
+
+  broadcastUri: null
+  broadcastPgsql: true
+  uvicornWorkers: 4
+  replicas: 1
+  extraEnv: {
+    # "CUSTOM_ENV_VAR": "VALUE"
+  }
+
+client:
+  port: 7000
+  opaPort: 8181
+  replicas: 1
+  # If you need to specify a custom hostname for the opal-sever, configure the serverUrl property
+  # serverUrl: http://custom-hostname-for-opal:opal-port
+  extraEnv: {
+    "OPAL_LOG_LEVEL": "DEBUG",
+    "OPAL_POLICY_STORE_URL": "http://web-portal.default.svc.cluster.local:8181"
+    #"OPAL_POLICY_STORE_AUTH_TYPE": "tls",
+    #"OPAL_POLICY_STORE_TLS_CLIENT_CERT":  "private.key",
+    #"OPAL_POLICY_STORE_TLS_CLIENT_KEY":   "public.crt",
+    #"OPAL_POLICY_STORE_TLS_CA":           ""
+  }

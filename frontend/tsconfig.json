@@ -1,0 +1,60 @@
+{
+	"compilerOptions": {
+		"sourceMap": true,
+		"outDir": "./dist/",
+		"noImplicitAny": true,
+		"module": "esnext",
+		"target": "es5",
+		"jsx": "react-jsx",
+		"allowJs": true,
+		"strict": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"lib": [
+			"dom",
+			"dom.iterable",
+			"esnext"
+		],
+		"allowSyntheticDefaultImports": true,
+		"noFallthroughCasesInSwitch": true,
+		"moduleResolution": "node",
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"noEmit": true,
+		"baseUrl": "./src",
+		"downlevelIteration": true,
+		"plugins": [
+			{
+				"name": "typescript-plugin-css-modules"
+			}
+		],
+		"types": [
+			"node",
+			"jest"
+		],
+	},
+	"exclude": [
+		"node_modules"
+	],
+	"include": [
+		"./src",
+		"./src/**/*.ts",
+		"src/**/*.tsx",
+		"src/**/*.d.ts",
+		"./babel.config.js",
+		"./jest.config.ts",
+		"./.eslintrc.js",
+		"./__mocks__",
+		"./conf/default.conf",
+		"./public",
+		"./tests",
+		"./playwright.config.ts",
+		"./commitlint.config.ts",
+		"./webpack.config.js",
+		"./webpack.config.prod.js",
+		"./jest.setup.ts",
+		"./tests/**.ts",
+		"./**/*.d.ts"
+	]
+}

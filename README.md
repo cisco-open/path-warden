@@ -1,95 +1,78 @@
-# Open Source Project Template
+# Path Warden
+This project looks to improve the security in cloud systems. Specifically, it demonstrates:
+1) A system for tracing the Lineage of data moving through services
+2) A strategy for storing the Lineage information for a piece of data
+3) An enforcement point for pieces of data based on their Lineage
+4) A mechanism for evaluating Polices that are being enforced
 
-[![Release](https://img.shields.io/github/v/release/cisco-ospo/oss-template?display_name=tag)](CHANGELOG.md)
-[![Lint](https://github.com/cisco-ospo/oss-template/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/cisco-ospo/oss-template/actions/workflows/lint.yml)
-[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-fbab2c.svg)](CODE_OF_CONDUCT.md)
-[![Maintainer](https://img.shields.io/badge/Maintainer-Cisco-00bceb.svg)](https://opensource.cisco.com)
+This design looks at solving these issues in dynamically constructed edge systems.
 
-## Before You Start
+## Overview
+So far, there are 4 key components to this system:
 
-As much as possible, we have tried to provide enough tooling to get you up and running quickly and with a minimum of effort. This includes sane defaults for documentation; templates for bug reports, feature requests, and pull requests; and [GitHub Actions](https://github.com/features/actions) that will automatically manage stale issues and pull requests. This latter defaults to labeling issues and pull requests as stale after 60 days of inactivity, and closing them after 7 additional days of inactivity. These [defaults](.github/workflows/stale.yml) and more can be configured. For configuration options, please consult the documentation for the [stale action](https://github.com/actions/stale).
+1. Lineage Propagation: This refers to the propagation of labels related to a piece of data moving through a set of services. The entirety of this set of labels is the `Data Lineage`. The original source of the data is the `Data Provenance`. The goal of lineage propagation is to save the original Data Provenance and concatenate onto it each processing step the data undergoes to generate a Data Lineage that can be evaluated at each proceeding step and ultimately stored for future reference.
 
-In trying to keep this template as generic and reusable as possible, there are some things that were omitted out of necessity and others that need a little tweaking. Before you begin developing in earnest, there are a few changes that need to be made:
+2. Lineage Storage: The Data Lineage propagated throughout the system for each series of actions is stored so that it can be referenced, altered, etc later on.
 
-- [ ] ✅ Select an [OSI-approved license](https://opensource.org/licenses) for your project. This can easily be achieved through the 'Add File' button on the GitHub UI, naming the file `LICENSE`, and selecting your desired license from the provided list.
-- [ ] Update the `<License name>` placeholder in this file to reflect the name of the license you selected above.
-- [ ] Replace `[INSERT CONTACT METHOD]` in [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) with a suitable communication channel.
-- [ ] Change references to `org_name` to the name of the org your repo belongs to (eg. `cisco-open`):
-  - [ ] In [`README.md`](README.md)
-  - [ ] In [`CONTRIBUTING.md`](CONTRIBUTING.md)
-- [ ] Change references to `repo_name` to the name of your new repo:
-  - [ ] In [`README.md`](README.md)
-  - [ ] In [`CONTRIBUTING.md`](CONTRIBUTING.md)
-- [ ] Update the link to the contribution guidelines to point to your project:
-  - [ ] In [`.github/ISSUE_TEMPLATE/BUG_REPORT.md`](.github/ISSUE_TEMPLATE/BUG_REPORT.md)
-  - [ ] In [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md)
-- [ ] Replace the `<project name>` placeholder with the name of your project:
-  - [ ] In [`CONTRIBUTING.md`](CONTRIBUTING.md)
-  - [ ] In [`SECURITY.md`](SECURITY.md)
-- [ ] Add names and contact information for actual project maintainers to [`MAINTAINERS.md`](MAINTAINERS.md).
-- [ ] Delete the content of [`CHANGELOG.md`](CHANGELOG.md). We encourage you to [keep a changelog](https://keepachangelog.com/en/1.0.0/).
-- [ ] Configure [`.github/dependabot.yaml`](dependabot.yaml) for your project's language and tooling dependencies.
-- [ ] Replace the generic content in this file with the relevant details about your project.
-- [ ] Acknowledge that some features like [branch protection rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/managing-a-branch-protection-rule) are only available when the repo is `public`.
-- [ ] 🚨 Delete this section of the `README`!
+3. Policy Enforcement: Making use of the propagated labels even prior to the data's ultimate destination, the system enforces data management policies at each service in the chain. Currently, enforcement results in pass/fail and either allows or blocks a request. This enforcement module makes sure to cache evaluations of labels to reduce overhead.
 
-## About The Project
+4. Policy Evaluation: At the enforcement points, not-yet-evaluated labels are sent off to a separate service to be evaluated for their pass/fail status. Otherwise, previously cached values are simply retrieved.
 
-Provide some information about what the project is/does.
+#### Key Technologies & Concepts
+- Label Propagation built using OpenTelemetry
+- Enforcement done in Istio Sidecars using Go Wasm Plugin
+- Policies written in Rego & evaluated using OPA
+- It is necessary that developers instrument their applications with our lineage propagation (tracing) libraries. However, these libraries desire to be incredibly lightweight and easy to use.
 
-## Getting Started
+### Current State
+#### Summary of System
+1. Label Propagation is achieved using Open Telemetry's Baggage Concept. We store a Label Set in JSON format at the baggage labeled `lineage_label_set`.
+2. Label Storage is achieved in myqsql by creating a separate table whose primary key is equivalent to the primary key of the table one is labeling. The current example shows this being done using a small library of functions in python. This allows enabling/disabling the labeling of data in existing systems without updating/destroying existing tables.
+3. We enforce data label policies in Istio's Service Mesh sidecars using a Go-Wasm Plugin. Reference Istio & the Go Wasm SDK for more information on those.
+4. We write policies for labels in Rego and evaluate them in OPA. The policies are currently written as part of the OPA sidecar manifest which creates the container in the service's pod.
 
-To get a local copy up and running follow these simple steps.
+#### Directory Summary
 
-### Prerequisites
+- Account-CRUD is a Demo App with basic CRUD functionality connected to a MySQL DB created for the purposes of testing the various lineage label propagation & enforcement technologies
 
-This is an example of how to list things you need to use the software and how to install them.
+- wasm-lineage-headers contains all files relevant to the development of the plugin written for the Istio sidecar which parses, validates & caches LabelSets.
 
-- npm
+##### (Provided as Reference)
+- OTel Basic contains a Series of Services used to Initially Develop & Test OpenTelemetry. Generally, the functionality created here is less mature than that in account-CRUD. These files are provided for general reference.
 
-  ```sh
-  npm install npm@latest -g
-  ```
+- OPA contains files relevant to testing & developing the OPA implementations. Ultimately, the plug-and-play solution of OPA for Istio was not used however these files are provided as reference.
 
-### Installation
+#### Implementation Summary
+As mentioned before, account-CRUD contains the demo of this system. See the README in that directory.
 
-1. Clone the repo
+### Pre-reqs
+- minikube installed on system
+- Istio installed on Minikube cluster
+- gsutils installed
+- Go installed
+- tinygo installed
 
-   ```sh
-   git clone https://github.com/org_name/repo_name.git
-   ```
+#### Recommended Additional Software
+- VSCode Server on instance for remote IDE access
 
-2. Install NPM packages
+#### Getting Up and Running with Cluster on EC2 instance
+1. Create Tunnel from terminal: `ssh -L 8080:localhost:8080 <remote-host>`
+2. Launch VSCode server: `code-server --auth none`
+3. Open new Terminal on local machine & ssh: `ssh <remote-host>`
+4. Create Tunnel from EC2 instance to minikube gateway `minikube tunnel`
+5. Launch New Terminal & ssh which serves as your working cli
 
-   ```sh
-   npm install
-   ```
+#### Accounts Required For:
+- GoogleCloud: Remotely storing & Deploying the Wasm Plugin using a GC bucket. Archived files show how it can be deployed with a local file (see envoyFilter.yaml). Deploying EnvoyFilter with GoogleCloud means saving it to a ConfigMap and injecting ConfigMap into app deployment. See docs for more information.
+- Docker: if you want to push images. Not necessary.
+- Use Jaeger for OpenTelemetry trace visualization
 
-## Usage
+##### Early Steps
+In addition to connecting & establishing the minikube tunnel, early on you will need to do the following things:
+1. Should you ever need to edit/redeploy the wasm-lineage-headers plugins (which is very likely), you'll need to make a google cloud account, and a bucket to contain the wasm file. Reference the git linked at the top of `WASM-Label-Lineage.md`.
 
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
-
-_For more examples, please refer to the [Documentation](https://example.com) or the [Wiki](https://github.com/org_name/repo_name/wiki)_
-
-## Roadmap
-
-See the [open issues](https://github.com/org_name/repo_name/issues) for a list of proposed features (and known issues).
-
-## Contributing
-
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**. For detailed contributing guidelines, please see [CONTRIBUTING.md](CONTRIBUTING.md)
-
-## License
-
-Distributed under the `<License name>` License. See [LICENSE](LICENSE) for more information.
-
-## Contact
-
-Your Name - [@twitter_handle](https://twitter.com/twitter_handle) - email
-
-Project Link: [https://github.com/org_name/repo_name](https://github.com/org_name/repo_name)
-
-## Acknowledgements
-
-This template was adapted from
-[https://github.com/othneildrew/Best-README-Template](https://github.com/othneildrew/Best-README-Template).
+### Future Work
+- More Languages supported for Label Propagation
+- More Databases supported for Label Storage
+- Integrate OPAL for simpler Policy distribution
+- More Policies written for particular labels

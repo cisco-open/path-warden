@@ -16,7 +16,7 @@ accomplish:
 
 ## Deploying OTel Resources
 
-Included here & in the provided files is reference to and instructions for exporting traces to Jaeger. 
+Included here & in the provided files is reference to and instructions for exporting traces to Jaeger.
 
 * Deploy Gateway for Otel (Creates opentelemetry namespace)
 `kubectl apply -f gateway.yml`

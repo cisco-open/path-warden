@@ -4008,7 +4008,7 @@ css-minimizer-webpack-plugin@^3.2.0:
   dependencies:
     cssnano "^5.0.6"
     jest-worker "^27.0.2"
-    postcss "^8.3.5"
+    postcss "^8.4.33"
     schema-utils "^4.0.0"
     serialize-javascript "^6.0.0"
     source-map "^0.6.1"

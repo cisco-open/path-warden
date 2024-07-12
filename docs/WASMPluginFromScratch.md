@@ -1,21 +1,24 @@
+# WASM Plugin From Scratch
+
 This is only a general overview for writing WASM plugins from scratch.
-- NOTE: All dependencies must already be installed (Go, TinyGo, Minikube, Istio, docker)
+
+> [!NOTE]
+>All dependencies must already be installed (Go, TinyGo, Minikube, Istio, docker)
 
 `mkdir <wasm-extension-name> && cd <wasm-extension-name>`
 
-**Initialize the Go Module**
-`go mod init <wasm-extension-name>`
+- Initialize the Go Module**
+  `go mod init <wasm-extension-name>`
+- write main.go file*
+- Download the dependencies**
+  `go mod tidy`
+- Write the yaml manifest file**
 
-*write main.go file*
-
-**Download the dependencies**
-`go mod tidy`
-
-**Write the yaml manifest file**
 - We can use either a WasmPlugin resource or an EnvoyFilter. WasmPlugin is easier and more abstract but lacks a number of features which is why the demo account-CRUD uses EnvoyFilter
 
 **Compile the Wasm Plugin**
 `rm main.wasm`
+
 - seemingly necessary since the following the command doesn't override existing file
 `tinygo build -o main.wasm -scheduler=none -target=wasi main.go`
 

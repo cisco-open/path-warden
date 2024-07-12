@@ -2,7 +2,7 @@ Flask
 Flask-cors
 Flask-MySQL==1.4.0  
 PyMySQL==1.1.1
-uWSGI==2.0.17.1
+uWSGI>=2.0.22
 mysql-connector-python
 cryptography
 kubernetes

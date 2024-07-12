@@ -9425,7 +9425,7 @@ react-scripts@5.0.1:
     jest-resolve "^27.4.2"
     jest-watch-typeahead "^1.0.0"
     mini-css-extract-plugin "^2.4.5"
-    postcss "^8.4.4"
+    postcss "^8.4.33"
     postcss-flexbugs-fixes "^5.0.2"
     postcss-loader "^6.2.1"
     postcss-normalize "^10.0.1"
@@ -9649,7 +9649,7 @@ resolve-url-loader@^4.0.0:
     adjust-sourcemap-loader "^4.0.0"
     convert-source-map "^1.7.0"
     loader-utils "^2.0.0"
-    postcss "^7.0.35"
+    postcss "^8.4.33"
     source-map "0.6.1"
 
 resolve.exports@^1.1.0:
@@ -10470,7 +10470,7 @@ tailwindcss@^3.0.2:
     normalize-path "^3.0.0"
     object-hash "^3.0.0"
     picocolors "^1.0.0"
-    postcss "^8.4.23"
+    postcss "^8.4.33"
     postcss-import "^15.1.0"
     postcss-js "^4.0.1"
     postcss-load-config "^4.0.1"
